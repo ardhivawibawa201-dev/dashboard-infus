@@ -1,382 +1,406 @@
+
 import { useState, useEffect, useRef } from "react";
 import mqtt from "mqtt";
+import "./App.css";
 
-function App(){
+function App() {
+  const [status, setStatus] = useState("Offline");
+  const [berat, setBerat] = useState(0);
+  const [tpm, setTpm] = useState(0);
+  const [pwm, setPwm] = useState(0);
+  const [modeAktif, setModeAktif] = useState("-");
+  const [statusInfus, setStatusInfus] = useState("NORMAL");
 
-const [status,setStatus]=useState("Offline");
-const [berat,setBerat]=useState(0);
-const [tpm,setTpm]=useState(0);
-const [target,setTarget]=useState(20);
-const [servo,setServo]=useState(0);
-const [statusInfus,setStatusInfus]=useState("NORMAL");
-const [isLogin,setIsLogin]=useState(false);
+  const [isLogin, setIsLogin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-const [username,setUsername]=useState("");
-const [password,setPassword]=useState("");
+  const [modeTerpilih, setModeTerpilih] = useState("");
+  const [pesanKontrol, setPesanKontrol] = useState("");
 
-const clientRef=useRef(null);
+  const clientRef = useRef(null);
 
-useEffect(()=>{
+  // ==============================
+  // KONEKSI MQTT
+  // ==============================
+  useEffect(() => {
+    const client = mqtt.connect(
+      "wss://870c766cdeac4276a1d1addf8b853c55.s1.eu.hivemq.cloud:8888/mqtt",
+      {
+        username: "Infuspintar",
+        password: "Infuspintar1234_",
+        reconnectPeriod: 3000,
+        connectTimeout: 10000,
+      }
+    );
 
-clientRef.current=mqtt.connect(
-"wss://870c766cdeac4276a1d1addf8b853c55.s1.eu.hivemq.cloud:8884/mqtt",
-{
-username:"Infuspintar",
-password:"Infuspintar1234_"
-}
-);
+    clientRef.current = client;
 
-clientRef.current.on("connect",()=>{
+    client.on("connect", () => {
+      setStatus("Online");
+      console.log("MQTT Connected");
 
-setStatus("Online");
+      client.subscribe([
+        "infus/berat",
+        "infus/tpm",
+        "infus/status",
+        "infus/pwm",
+        "infus/mode_status",
+      ]);
+    });
 
-console.log("MQTT Connected");
+    client.on("offline", () => {
+      setStatus("Offline");
+    });
 
-clientRef.current.subscribe(
-"infus/berat"
-);
+    client.on("close", () => {
+      setStatus("Offline");
+    });
 
-clientRef.current.subscribe(
-"infus/tpm"
-);
-clientRef.current.subscribe(
-"infus/servo"
-);
+    client.on("error", (error) => {
+      console.error("MQTT Error:", error);
+      setStatus("Offline");
+    });
 
-clientRef.current.subscribe(
-"infus/status"
-);
+    client.on("message", (topic, message) => {
+      const data = message.toString();
 
-});
+      if (topic === "infus/berat") {
+        setBerat(data);
+      }
 
-clientRef.current.on(
-"message",
-(topic,message)=>{
+      if (topic === "infus/tpm") {
+        setTpm(data);
+      }
 
-let data=
-message.toString();
+      if (topic === "infus/status") {
+        setStatusInfus(data);
+      }
 
-if(topic==="infus/berat"){
+      if (topic === "infus/pwm") {
+        setPwm(data);
+      }
 
-setBerat(data);
+      if (topic === "infus/mode_status") {
+        setModeAktif(data);
 
-}
+        if (["A", "B", "C"].includes(data)) {
+          setModeTerpilih(data);
+          setPesanKontrol(
+            "ESP32 mengonfirmasi Mode " + data + " aktif."
+          );
+        } else if (data === "OFF") {
+          setModeTerpilih("");
+          setPesanKontrol("Motor dalam keadaan OFF.");
+        }
+      }
+    });
 
-if(topic==="infus/tpm"){
-  setTpm(data);
-}
-if(topic==="infus/servo")
-{
-  setServo(data);
-}
+    return () => {
+      client.end();
+      clientRef.current = null;
+    };
+  }, []);
 
-if(topic==="infus/status")
-{
-  setStatusInfus(data);
-}
-
-}
-);
-
-return ()=>{
-
-clientRef.current.end();
-
-}
-
-},[]);
-
-function login()
-{
-  if(
-    username === "infus123" &&
-    password === "infus123"
-  )
-  {
-    setIsLogin(true);
+  // ==============================
+  // LOGIN
+  // ==============================
+  function login() {
+    if (username === "infus123" && password === "infus123") {
+      setIsLogin(true);
+    } else {
+      alert("Username atau Password Salah");
+    }
   }
-  else
-  {
-    alert("Username atau Password Salah");
+
+  // ==============================
+  // KONTROL MODE MOTOR
+  // ==============================
+  function kirimMode(mode) {
+    if (!clientRef.current || !clientRef.current.connected) {
+      setPesanKontrol("MQTT belum terhubung. Periksa koneksi.");
+      return;
+    }
+
+    setPesanKontrol(
+      "Mengirim perintah Mode " + mode + " ke ESP32..."
+    );
+
+    clientRef.current.publish(
+      "infus/mode",
+      mode,
+      { qos: 1 },
+      (error) => {
+        if (error) {
+          setPesanKontrol("Gagal mengirim perintah.");
+          return;
+        }
+
+        setPesanKontrol(
+          "Perintah terkirim. Menunggu konfirmasi dari ESP32..."
+        );
+      }
+    );
   }
-}
-function kirimTarget(){
 
-clientRef.current.publish(
+  // ==============================
+  // LOGIN PAGE
+  // ==============================
+  if (!isLogin) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-logo">💧</div>
 
-"infus/target",
+          <h1 className="login-title">SMART INFUS</h1>
 
-target.toString()
+          <p className="login-subtitle">
+            Sistem Monitoring Infus Berbasis Internet of Things
+          </p>
 
-);
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              login();
+            }}
+          >
+            <input
+              className="login-input"
+              type="text"
+              placeholder="Masukkan username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
 
-alert(
-"TPM terkirim: "+target
-);
+            <input
+              className="login-input"
+              type="password"
+              placeholder="Masukkan password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
 
-}
+            <button className="login-button" type="submit">
+              LOGIN
+            </button>
+          </form>
 
-if(!isLogin)
-{
-  return(
+          <p className="login-subtitle" style={{ marginBottom: 0, marginTop: 22 }}>
+            Smart Infus Monitoring Dashboard
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-<div style={{
-background:"linear-gradient(135deg,#1976d2,#42a5f5)",
-minHeight:"100vh",
-display:"flex",
-justifyContent:"center",
-alignItems:"center"
-}}>
+  // ==============================
+  // STATUS INFUS
+  // ==============================
+  let statusClass = "status-indicator";
+  let statusLabel = statusInfus;
 
-<div style={{
-background:"white",
-padding:"40px",
-borderRadius:"20px",
-width:"350px",
-boxShadow:"0 10px 25px rgba(0,0,0,0.2)"
-}}>
+  if (statusInfus === "NORMAL") {
+    statusLabel = "NORMAL";
+  } else if (statusInfus === "HAMPIR HABIS") {
+    statusClass += " warning";
+    statusLabel = "HAMPIR HABIS";
+  } else if (
+    statusInfus === "INFUS MACET" ||
+    statusInfus === "MACET"
+  ) {
+    statusClass += " danger";
+    statusLabel = "INFUS MACET";
+  }
 
-<h1
-style={{
-textAlign:"center",
-color:"#1976d2",
-marginBottom:"5px"
-}}
->
-SMART INFUS
-</h1>
+  // ==============================
+  // DASHBOARD
+  // ==============================
+  return (
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
+          <h1>SMART INFUS</h1>
+          <p>Monitoring dan Kontrol Infus Berbasis IoT</p>
+        </div>
 
-<p
-style={{
-textAlign:"center",
-color:"gray",
-marginBottom:"25px"
-}}
->
-Monitoring Infus Berbasis IoT
-</p>
+        <div className="connection-badge">
+          <span
+            className={
+              status === "Online"
+                ? "connection-dot online"
+                : "connection-dot"
+            }
+          />
+          MQTT {status}
+        </div>
+      </header>
 
-<input
-placeholder="Username"
-value={username}
-onChange={(e)=>
-setUsername(e.target.value)
-}
-style={{
-width:"100%",
-padding:"12px",
-borderRadius:"10px",
-border:"1px solid #ccc",
-boxSizing:"border-box"
-}}
-/>
+      <main className="dashboard-content">
+        <h2 className="section-heading">
+          Dashboard Monitoring
+        </h2>
 
-<br/><br/>
+        <p className="section-description">
+          Ringkasan pembacaan sensor dan kondisi sistem.
+        </p>
 
-<input
-type="password"
-placeholder="Password"
-value={password}
-onChange={(e)=>
-setPassword(e.target.value)
-}
-style={{
-width:"100%",
-padding:"12px",
-borderRadius:"10px",
-border:"1px solid #ccc",
-boxSizing:"border-box"
-}}
-/>
+        <div className="monitoring-grid">
+          <div className="monitor-card">
+            <div className="monitor-card-header">
+              <div className="monitor-icon">⚖️</div>
+              <div>
+                <p className="monitor-label">Berat Cairan</p>
+                <p className="monitor-label">Pembacaan load cell</p>
+              </div>
+            </div>
 
+            <p className="monitor-value">
+              {berat}
+              <span className="monitor-unit">gram</span>
+            </p>
+          </div>
 
-<br/><br/>
+          <div className="monitor-card">
+            <div className="monitor-card-header">
+              <div className="monitor-icon">💧</div>
+              <div>
+                <p className="monitor-label">Laju Tetesan</p>
+                <p className="monitor-label">Pembacaan sensor tetes</p>
+              </div>
+            </div>
 
-<button
-onClick={login}
-style={{
-width:"100%",
-padding:"12px",
-background:"#1976d2",
-color:"white",
-border:"none",
-borderRadius:"10px",
-fontSize:"16px",
-fontWeight:"bold",
-cursor:"pointer"
-}}
->
-LOGIN
-</button>
+            <p className="monitor-value">
+              {tpm}
+              <span className="monitor-unit">TPM</span>
+            </p>
+          </div>
 
-</div>
+          <div className="monitor-card">
+            <div className="monitor-card-header">
+              <div className="monitor-icon">⚙️</div>
+              <div>
+                <p className="monitor-label">PWM Motor</p>
+                <p className="monitor-label">Nilai kendali motor</p>
+              </div>
+            </div>
 
-</div>
+            <p className="monitor-value">
+              {pwm}
+              <span className="monitor-unit">/ 255</span>
+            </p>
+          </div>
 
+          <div className="monitor-card">
+            <div className="monitor-card-header">
+              <div className="monitor-icon">🎛️</div>
+              <div>
+                <p className="monitor-label">Mode Motor</p>
+                <p className="monitor-label">Konfirmasi dari ESP32</p>
+              </div>
+            </div>
+
+            <p className="monitor-value">
+              {modeAktif}
+            </p>
+          </div>
+        </div>
+
+        <section className="status-panel">
+          <h2>📋 Status Sistem Infus</h2>
+
+          <span className={statusClass}>
+            {statusLabel}
+          </span>
+
+          <p className="control-description" style={{ marginTop: 14, marginBottom: 0 }}>
+            Status ini mengikuti data yang dikirimkan ESP32.
+          </p>
+        </section>
+
+        <section className="control-panel">
+          <h2>🎛️ Kontrol Motor Infus</h2>
+
+          <p className="control-description">
+            Pilih mode untuk mengirim perintah pengoperasian motor ke ESP32.
+          </p>
+
+          <div className="mode-grid">
+            <button
+              className={
+                modeTerpilih === "A"
+                  ? "mode-button active"
+                  : "mode-button"
+              }
+              onClick={() => kirimMode("A")}
+              disabled={status !== "Online"}
+            >
+              <span className="mode-name">Mode A</span>
+              <span className="mode-detail">
+                Tanpa motor
+                <br />
+                PWM 0
+              </span>
+            </button>
+
+            <button
+              className={
+                modeTerpilih === "B"
+                  ? "mode-button active"
+                  : "mode-button"
+              }
+              onClick={() => kirimMode("B")}
+              disabled={status !== "Online"}
+            >
+              <span className="mode-name">Mode B</span>
+              <span className="mode-detail">
+                Kecepatan motor
+                <br />
+                PWM 120
+              </span>
+            </button>
+
+            <button
+              className={
+                modeTerpilih === "C"
+                  ? "mode-button active"
+                  : "mode-button"
+              }
+              onClick={() => kirimMode("C")}
+              disabled={status !== "Online"}
+            >
+              <span className="mode-name">Mode C</span>
+              <span className="mode-detail">
+                Kecepatan motor
+                <br />
+                PWM 130
+              </span>
+            </button>
+          </div>
+
+          {pesanKontrol && (
+            <div className="control-message" role="status">
+              {pesanKontrol}
+            </div>
+          )}
+        </section>
+
+        <p
+          style={{
+            textAlign: "center",
+            color: "#64748b",
+            fontSize: 12,
+            marginTop: 25,
+          }}
+        >
+          Smart Infus Monitoring · Prototipe pemantauan dan pengujian
+        </p>
+      </main>
+    </div>
   );
-}
-return(
-
-<div style={{
-minHeight:"100vh",
-background:"#f4f7fb",
-padding:"30px"
-}}>
-
-<h1
-style={{
-textAlign:"center",
-color:"#1976d2"
-}}
->
-SMART INFUS MONITORING
-</h1>
-
-<div
-style={{
-textAlign:"center",
-marginBottom:"20px"
-}}
->
-Status MQTT :
-<span
-style={{
-color:"green",
-fontWeight:"bold"
-}}
->
- {status}
-</span>
-</div>
-
-<h1>
-Dashboard Monitoring Infus
-</h1>
-
-<h3>
-Status:
-{status}
-</h3>
-
-<hr/>
-
-<div
-style={{
-background:"white",
-padding:"25px",
-borderRadius:"20px",
-boxShadow:"0 5px 20px rgba(0,0,0,0.1)",
-maxWidth:"500px",
-margin:"auto"
-}}
->
-
-<h2>
-🛏 KAMAR 1
-</h2>
-
-<hr/>
-
-<h3>
-💧 Berat : {berat} gram
-</h3>
-
-<h3>
-📈 TPM : {tpm}
-</h3>
-
-<h3>
-⚙ Servo : {servo}°
-</h3>
-
-<h3>
-Status :
-{
-statusInfus==="NORMAL"
-?
-" 🟢 NORMAL"
-:
-statusInfus==="HAMPIR HABIS"
-?
-" 🟡 HAMPIR HABIS"
-:
-" 🔴 INFUS MACET"
-}
-</h3>
-
-</div>
-
-<hr/>
-
-<div
-style={{
-background:"white",
-padding:"20px",
-marginTop:"20px",
-borderRadius:"20px",
-boxShadow:"0 5px 20px rgba(0,0,0,0.1)",
-maxWidth:"500px",
-marginLeft:"auto",
-marginRight:"auto"
-}}
->
-
-<h3>
-🎯 Target TPM
-</h3>
-
-<input
-type="number"
-value={target}
-onChange={(e)=>
-setTarget(e.target.value)
-}
-style={{
-padding:"10px",
-width:"120px",
-borderRadius:"10px",
-border:"1px solid #ccc"
-}}
-/>
-
-<button
-onClick={kirimTarget}
-style={{
-marginLeft:"10px",
-padding:"10px 20px",
-background:"#1976d2",
-color:"white",
-border:"none",
-borderRadius:"10px",
-cursor:"pointer"
-}}
->
-Kirim
-</button>
-
-</div>
-
-<input
-type="number"
-value={target}
-onChange={(e)=>
-setTarget(
-e.target.value
-)}
-/>
-
-<button
-onClick={kirimTarget}
->
-
-Kirim
-
-</button>
-
-</div>
-
-)
-
 }
 
 export default App;
