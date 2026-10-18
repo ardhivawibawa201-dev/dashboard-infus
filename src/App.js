@@ -3,6 +3,13 @@ import { useState, useEffect, useRef } from "react";
 import mqtt from "mqtt";
 import "./App.css";
 
+const MQTT_URL =
+  "wss://870c766cdeac4276a1d1addf8b853c55.s1.eu.hivemq.cloud:8884/mqtt";
+
+// Isi dengan kredensial MQTT HiveMQ yang valid.
+const MQTT_USERNAME = "Infuspintar";
+const MQTT_PASSWORD = "GANTI_DENGAN_PASSWORD_MQTT_KAMU";
+
 function App() {
   const [status, setStatus] = useState("Offline");
   const [berat, setBerat] = useState(0);
@@ -20,33 +27,42 @@ function App() {
 
   const clientRef = useRef(null);
 
-  // ==============================
+  // =========================
   // KONEKSI MQTT
-  // ==============================
+  // =========================
   useEffect(() => {
-    const client = mqtt.connect(
-      "wss://870c766cdeac4276a1d1addf8b853c55.s1.eu.hivemq.cloud:8888/mqtt",
-      {
-        username: "Infuspintar",
-        password: "Infuspintar1234_",
-        reconnectPeriod: 3000,
-        connectTimeout: 10000,
-      }
-    );
+    const client = mqtt.connect(MQTT_URL, {
+      username: MQTT_USERNAME,
+      password: MQTT_PASSWORD,
+      reconnectPeriod: 3000,
+      connectTimeout: 10000,
+      clean: true,
+    });
 
     clientRef.current = client;
 
     client.on("connect", () => {
-      setStatus("Online");
       console.log("MQTT Connected");
+      setStatus("Online");
 
-      client.subscribe([
-        "infus/berat",
-        "infus/tpm",
-        "infus/status",
-        "infus/pwm",
-        "infus/mode_status",
-      ]);
+      client.subscribe(
+        [
+          "infus/berat",
+          "infus/tpm",
+          "infus/status",
+          "infus/pwm",
+          "infus/mode_status",
+        ],
+        (error) => {
+          if (error) {
+            console.error("Gagal subscribe:", error);
+          }
+        }
+      );
+    });
+
+    client.on("reconnect", () => {
+      console.log("Mencoba menyambungkan ulang MQTT...");
     });
 
     client.on("offline", () => {
@@ -87,7 +103,7 @@ function App() {
         if (["A", "B", "C"].includes(data)) {
           setModeTerpilih(data);
           setPesanKontrol(
-            "ESP32 mengonfirmasi Mode " + data + " aktif."
+            `ESP32 mengonfirmasi Mode ${data} aktif.`
           );
         } else if (data === "OFF") {
           setModeTerpilih("");
@@ -102,50 +118,61 @@ function App() {
     };
   }, []);
 
-  // ==============================
+  // =========================
   // LOGIN
-  // ==============================
-  function login() {
-    if (username === "infus123" && password === "infus123") {
+  // =========================
+  function login(event) {
+    event.preventDefault();
+
+    if (
+      username === "infus123" &&
+      password === "infus123"
+    ) {
       setIsLogin(true);
     } else {
-      alert("Username atau Password Salah");
+      alert("Username atau Password salah.");
     }
   }
 
-  // ==============================
-  // KONTROL MODE MOTOR
-  // ==============================
+  // =========================
+  // KONTROL MOTOR
+  // =========================
   function kirimMode(mode) {
-    if (!clientRef.current || !clientRef.current.connected) {
-      setPesanKontrol("MQTT belum terhubung. Periksa koneksi.");
+    const client = clientRef.current;
+
+    if (!client || !client.connected) {
+      setPesanKontrol(
+        "MQTT belum terhubung. Periksa koneksi terlebih dahulu."
+      );
       return;
     }
 
     setPesanKontrol(
-      "Mengirim perintah Mode " + mode + " ke ESP32..."
+      `Mengirim perintah Mode ${mode} ke ESP32...`
     );
 
-    clientRef.current.publish(
+    client.publish(
       "infus/mode",
       mode,
       { qos: 1 },
       (error) => {
         if (error) {
-          setPesanKontrol("Gagal mengirim perintah.");
+          setPesanKontrol(
+            "Gagal mengirim perintah ke MQTT."
+          );
           return;
         }
 
         setPesanKontrol(
-          "Perintah terkirim. Menunggu konfirmasi dari ESP32..."
+          `Perintah Mode ${mode} terkirim. Menunggu konfirmasi ESP32...`
         );
       }
     );
   }
 
-  // ==============================
-  // LOGIN PAGE
-  // ==============================
+  // =========================
+  // TAMPILAN LOGIN
+  // =========================
   if (!isLogin) {
     return (
       <div className="login-container">
@@ -155,21 +182,18 @@ function App() {
           <h1 className="login-title">SMART INFUS</h1>
 
           <p className="login-subtitle">
-            Sistem Monitoring Infus Berbasis Internet of Things
+            Sistem Monitoring Infus Berbasis IoT
           </p>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              login();
-            }}
-          >
+          <form onSubmit={login}>
             <input
               className="login-input"
               type="text"
-              placeholder="Masukkan username"
+              placeholder="Username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(event) =>
+                setUsername(event.target.value)
+              }
               autoComplete="username"
               required
             />
@@ -177,14 +201,19 @@ function App() {
             <input
               className="login-input"
               type="password"
-              placeholder="Masukkan password"
+              placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) =>
+                setPassword(event.target.value)
+              }
               autoComplete="current-password"
               required
             />
 
-            <button className="login-button" type="submit">
+            <button
+              className="login-button"
+              type="submit"
+            >
               LOGIN
             </button>
           </form>
@@ -197,9 +226,9 @@ function App() {
     );
   }
 
-  // ==============================
+  // =========================
   // STATUS INFUS
-  // ==============================
+  // =========================
   let statusClass = "status-indicator";
   let statusLabel = statusInfus;
 
@@ -216,9 +245,9 @@ function App() {
     statusLabel = "INFUS MACET";
   }
 
-  // ==============================
+  // =========================
   // DASHBOARD
-  // ==============================
+  // =========================
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -254,7 +283,9 @@ function App() {
               <div className="monitor-icon">⚖️</div>
               <div>
                 <p className="monitor-label">Berat Cairan</p>
-                <p className="monitor-label">Pembacaan load cell</p>
+                <p className="monitor-label">
+                  Pembacaan load cell
+                </p>
               </div>
             </div>
 
@@ -269,7 +300,9 @@ function App() {
               <div className="monitor-icon">💧</div>
               <div>
                 <p className="monitor-label">Laju Tetesan</p>
-                <p className="monitor-label">Pembacaan sensor tetes</p>
+                <p className="monitor-label">
+                  Pembacaan sensor tetes
+                </p>
               </div>
             </div>
 
@@ -284,7 +317,9 @@ function App() {
               <div className="monitor-icon">⚙️</div>
               <div>
                 <p className="monitor-label">PWM Motor</p>
-                <p className="monitor-label">Nilai kendali motor</p>
+                <p className="monitor-label">
+                  Nilai kendali motor
+                </p>
               </div>
             </div>
 
@@ -299,13 +334,13 @@ function App() {
               <div className="monitor-icon">🎛️</div>
               <div>
                 <p className="monitor-label">Mode Motor</p>
-                <p className="monitor-label">Konfirmasi dari ESP32</p>
+                <p className="monitor-label">
+                  Konfirmasi dari ESP32
+                </p>
               </div>
             </div>
 
-            <p className="monitor-value">
-              {modeAktif}
-            </p>
+            <p className="monitor-value">{modeAktif}</p>
           </div>
         </div>
 
@@ -316,8 +351,11 @@ function App() {
             {statusLabel}
           </span>
 
-          <p className="control-description" style={{ marginTop: 14, marginBottom: 0 }}>
-            Status ini mengikuti data yang dikirimkan ESP32.
+          <p
+            className="control-description"
+            style={{ marginTop: 14, marginBottom: 0 }}
+          >
+            Status mengikuti data yang dikirimkan ESP32.
           </p>
         </section>
 
@@ -325,11 +363,13 @@ function App() {
           <h2>🎛️ Kontrol Motor Infus</h2>
 
           <p className="control-description">
-            Pilih mode untuk mengirim perintah pengoperasian motor ke ESP32.
+            Pilih mode untuk mengirim perintah pengoperasian
+            motor ke ESP32.
           </p>
 
           <div className="mode-grid">
             <button
+              type="button"
               className={
                 modeTerpilih === "A"
                   ? "mode-button active"
@@ -347,6 +387,7 @@ function App() {
             </button>
 
             <button
+              type="button"
               className={
                 modeTerpilih === "B"
                   ? "mode-button active"
@@ -364,6 +405,7 @@ function App() {
             </button>
 
             <button
+              type="button"
               className={
                 modeTerpilih === "C"
                   ? "mode-button active"
@@ -396,7 +438,7 @@ function App() {
             marginTop: 25,
           }}
         >
-          Smart Infus Monitoring · Prototipe pemantauan dan pengujian
+          Smart Infus Monitoring · Prototipe pengujian
         </p>
       </main>
     </div>
