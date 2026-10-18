@@ -1,38 +1,476 @@
+
+/* ==============================
+   SMART INFUS MONITORING
+   Dashboard Styles
+================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+button {
+  transition: all 0.2s ease;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+/* ==============================
+   GENERAL
+================================ */
+
 .App {
+  min-height: 100vh;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+h1,
+h2,
+h3,
+p {
+  overflow-wrap: anywhere;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+h1 {
+  color: #0f2f56;
 }
 
-.App-header {
-  background-color: #282c34;
+h2 {
+  color: #174a7e;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 22px 0;
+}
+
+/* ==============================
+   LOGIN
+================================ */
+
+.login-container {
   min-height: 100vh;
+  padding: 20px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  background: linear-gradient(135deg, #0f2f56, #1976d2, #38bdf8);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 35px;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(15, 47, 86, 0.25);
+}
+
+.login-logo {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  background: #e0f2fe;
+  color: #1976d2;
+  font-size: 36px;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 29px;
+  font-weight: 800;
+  color: #1976d2;
+}
+
+.login-subtitle {
+  margin: 10px 0 28px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.login-input {
+  width: 100%;
+  padding: 13px 15px;
+  margin-bottom: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 15px;
+}
+
+.login-input:focus {
+  border-color: #1976d2;
+  background: #ffffff;
+}
+
+.login-button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #1976d2;
   color: white;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
 }
 
-.App-link {
-  color: #61dafb;
+.login-button:hover {
+  background: #1256a0;
+  transform: translateY(-1px);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+/* ==============================
+   DASHBOARD
+================================ */
+
+.dashboard {
+  min-height: 100vh;
+  padding: 30px;
+  background: #f1f5f9;
+}
+
+.dashboard-header {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.dashboard-brand {
+  text-align: left;
+}
+
+.dashboard-brand h1 {
+  margin: 0;
+  color: #123b67;
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.dashboard-brand p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px;
+  border-radius: 30px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.connection-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.connection-dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px #dcfce7;
+}
+
+.dashboard-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-heading {
+  margin: 0 0 7px;
+  text-align: left;
+  color: #123b67;
+  font-size: 23px;
+}
+
+.section-description {
+  margin: 0 0 24px;
+  text-align: left;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* ==============================
+   MONITORING CARDS
+================================ */
+
+.monitoring-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.monitor-card {
+  padding: 24px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(15, 47, 86, 0.04);
+}
+
+.monitor-card-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.monitor-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: #e0f2fe;
+  font-size: 24px;
+}
+
+.monitor-label {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.monitor-value {
+  margin: 18px 0 0;
+  color: #123b67;
+  font-size: 30px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.monitor-unit {
+  margin-left: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ==============================
+   INFUSION STATUS
+================================ */
+
+.status-panel {
+  margin-bottom: 25px;
+  padding: 23px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(15, 47, 86, 0.04);
+}
+
+.status-panel h2 {
+  margin: 0 0 15px;
+  font-size: 19px;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-radius: 30px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.status-indicator.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-indicator.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ==============================
+   MOTOR CONTROL
+================================ */
+
+.control-panel {
+  padding: 26px;
+  margin-bottom: 25px;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(15, 47, 86, 0.05);
+}
+
+.control-panel h2 {
+  margin: 0 0 8px;
+  font-size: 21px;
+}
+
+.control-description {
+  margin: 0 0 20px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mode-button {
+  min-height: 105px;
+  padding: 16px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 15px;
+  background: #ffffff;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-button:hover:not(:disabled) {
+  border-color: #60a5fa;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(25, 118, 210, 0.10);
+}
+
+.mode-button.active {
+  border-color: #1976d2;
+  background: #eff6ff;
+  color: #1256a0;
+}
+
+.mode-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-name {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.mode-detail {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.control-message {
+  margin-top: 18px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ==============================
+   INPUTS AND BUTTONS
+================================ */
+
+input {
+  max-width: 100%;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+/* ==============================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 20px 14px;
   }
-  to {
-    transform: rotate(360deg);
+
+  .dashboard-header {
+    align-items: flex-start;
+  }
+
+  .dashboard-brand h1 {
+    font-size: 22px;
+  }
+
+  .monitoring-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .monitor-card {
+    padding: 20px;
+  }
+
+  .monitor-value {
+    font-size: 27px;
+  }
+
+  .mode-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-button {
+    min-height: auto;
+  }
+
+  .control-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-card {
+    padding: 26px 20px;
+  }
+
+  .dashboard-brand h1 {
+    font-size: 20px;
+  }
+
+  .connection-badge {
+    font-size: 12px;
   }
 }
